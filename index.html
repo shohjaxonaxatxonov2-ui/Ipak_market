@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Do'kon Ombor va Sotuv Tizimi (Pro Mobile)</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #e2e8f0; padding: 15px; color: #1e293b; min-height: 100vh; display: flex; justify-content: center; align-items: center; }
+        
+        /* Login Oynasi Stilari */
+        #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.8); display: flex; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(5px); padding: 15px; }
+        .login-card { background: white; padding: 30px 20px; border-radius: 20px; width: 100%; max-width: 400px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); text-align: center; }
+        .login-card h2 { margin-bottom: 20px; color: #0f172a; font-size: 22px; }
+        .login-card form { display: grid; gap: 15px; background: none; padding: 0; border: none; }
+        .login-card input { padding: 14px; border: 1px solid #cbd5e1; border-radius: 10px; font-size: 16px; width: 100%; }
+        .login-card button { padding: 14px; background: #3b82f6; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 16px; cursor: pointer; text-transform: uppercase; width: 100%; }
+        .login-card button:hover { background: #2563eb; }
+        .login-error { color: #ef4444; font-size: 14px; margin-top: 10px; display: none; }
+
+        /* Asosiy Dastur Stilari */
+        #mainApp { width: 100%; max-width: 1400px; display: none; }
+        .app-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        h1 { color: #0f172a; font-size: 20px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+        .logout-btn { background: #ef4444; color: white; border: none; padding: 8px 14px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 13px; transition: 0.2s; }
+        .logout-btn:hover { background: #dc2626; }
+
+        .stats-bar { background: linear-gradient(to right, #0f172a, #334155); color: white; padding: 15px; border-radius: 16px; margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; text-align: center; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .stats-item h3 { font-size: 11px; opacity: 0.8; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .stats-item p { font-size: 16px; font-weight: bold; margin-top: 2px; }
+        
+        .grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        @media (min-width: 992px) {
+            .grid { grid-template-columns: repeat(2, 1fr); gap: 25px; }
+            h1 { font-size: 24px; }
+        }
+
+        .card { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border-top: 4px solid #3b82f6; }
+        .card.sales-card { border-top: 4px solid #10b981; }
+        .card h2 { margin-bottom: 15px; color: #1e293b; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+        
+        form { display: grid; gap: 12px; margin-bottom: 20px; background: #f8fafc; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; }
+        input, select, button { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 15px; outline: none; transition: all 0.2s; }
+        input:focus, select:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+        .search-box { background-color: #fff; border: 2px solid #3b82f6; font-weight: 500; width: 100%; margin-bottom: 12px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+        .search-box.sales-search { border-color: #10b981; }
+        
+        button { background-color: #3b82f6; color: white; font-weight: 600; border: none; cursor: pointer; text-transform: uppercase; font-size: 14px; letter-spacing: 0.5px; }
+        button:hover { background-color: #2563eb; transform: translateY(-1px); }
+        button:active { transform: translateY(0); }
+        button.sell-btn { background-color: #10b981; }
+        button.sell-btn:hover { background-color: #059669; }
+        button.return-btn { background-color: #ef4444; padding: 8px 10px; font-size: 11px; border-radius: 6px; text-transform: none; font-weight: bold; width: 100%; }
+        button.return-btn:hover { background-color: #dc2626; }
+        
+        .table-container { overflow-x: auto; max-height: 350px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; -webkit-overflow-scrolling: touch; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; white-space: nowrap; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        th { background-color: #f1f5f9; color: #475569; font-weight: 600; position: sticky; top: 0; z-index: 10; }
+        tr:hover { background-color: #f8fafc; }
+        .badge-low { background-color: #fee2e2; color: #dc2626; padding: 3px 6px; border-radius: 6px; font-size: 11px; font-weight: bold; }
+        .badge-ok { background-color: #dcfce7; color: #15803d; padding: 3px 6px; border-radius: 6px; font-size: 11px; font-weight: bold; }
+        .no-data { text-align: center; color: #94a3b8; padding: 25px !important; font-style: italic; }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body>
+
+    <!-- Login Oynasi -->
+    <div id="loginOverlay">
+        <div class="login-card">
+            <h2>🔐 Tizimga Kirish</h2>
+            <form id="loginForm">
+                <input type="text" id="loginUser" placeholder="Login" required>
+                <input type="password" id="loginPass" placeholder="Parol" required>
+                <button type="submit">Kirish</button>
+                <p id="loginError" class="login-error">Login yoki parol noto'g'ri!</p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Asosiy Dastur Oynasi -->
+    <div id="mainApp">
+        <div class="app-header">
+            <h1>🏢 Do'kon Boshqaruvi</h1>
+            <button class="logout-btn" onclick="logout()">🔒 Chiqish</button>
+        </div>
+
+        <div class="stats-bar">
+            <div class="stats-item">
+                <h3>📦 QOLDIQ</h3>
+                <p id="totalStock">0 dona</p>
+            </div>
+            <div class="stats-item">
+                <h3>🏷️ TAN NARX</h3>
+                <p id="totalCost">0 so'm</p>
+            </div>
+            <div class="stats-item">
+                <h3>💵 SOTUVDA</h3>
+                <p id="totalPotentialRevenue">0 so'm</p>
+            </div>
+            <div class="stats-item">
+                <h3>📈 KUTIL. FOYDA</h3>
+                <p id="totalPotentialProfit" style="color: #4ade80;">0 so'm</p>
+            </div>
+            <div class="stats-item">
+                <h3>💰 KASSA</h3>
+                <p id="totalRevenue">0 so'm</p>
+            </div>
+            <div class="stats-item">
+                <h3>🌟 SOF FOYDA</h3>
+                <p id="totalProfit" style="color: #4ade80;">0 so'm</p>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2>📦 Tovar Qo'shish</h2>
+                <form id="addForm">
+                    <input type="text" id="pName" placeholder="Tovar nomi (masalan: Olma)" required>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <input type="number" id="pQty" placeholder="Soni" min="1" required>
+                        <input type="number" id="pBuyPrice" placeholder="Kelgan narx" min="0" required>
+                    </div>
+                    <input type="number" id="pSellPrice" placeholder="Sotish narxi (1 dona)" min="0" required>
+                    <button type="submit">➕ Bazaga Qo'shish</button>
+                </form>
+
+                <h3 style="margin: 20px 0 8px; font-size: 15px;">Ombor qoldig'i</h3>
+                <input type="text" id="searchBox" class="search-box" placeholder="🔍 Tovar izlash...">
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Tovar Nomi</th>
+                                <th>Qoldiq</th>
+                                <th>Kelgan Narx</th>
+                                <th>Sotish Narx</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryTable"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card sales-card">
+                <h2>🛍️ Sotuv Oynasi</h2>
+                
+                <input type="text" id="sellSearchBox" class="search-box sales-search" placeholder="🔍 Sotiladigan tovar nomi...">
+
+                <form id="sellForm">
+                    <select id="sellSelect" required>
+                        <option value="">-- Tovarni tanlang --</option>
+                    </select>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <input type="number" id="sellQty" placeholder="Soni" min="1" required>
+                        <button type="submit" class="sell-btn">💲 SOTISH</button>
+                    </div>
+                </form>
+
+                <h3 style="margin: 20px 0 8px; font-size: 15px;">Sotuvlar tarixi</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Vaqt</th>
+                                <th>Tovar</th>
+                                <th>Soni</th>
+                                <th>Tushum</th>
+                                <th>Foyda</th>
+                                <th>Harakat</th>
+                            </tr>
+                        </thead>
+                        <tbody id="salesTable"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========================================================
+        // 🔑 BU YERDAN LOGIN VA PAROLNI O'ZGARTIRISHINGIZ MUMKIN:
+        // ========================================================
+        const USERNAME = "admin"; // Qo'shtirnoq ichiga o'z loginigizni yozing
+        const PASSWORD = "1234";  // Qo'shtirnoq ichiga o'z parolingizni yozing
+        // ========================================================
+
+        if (sessionStorage.getItem('isLoggedIn') === 'true') {
+            document.getElementById('loginOverlay').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const u = document.getElementById('loginUser').value.trim();
+            const p = document.getElementById('loginPass').value.trim();
+
+            if (u === USERNAME && p === PASSWORD) {
+                sessionStorage.setItem('isLoggedIn', 'true');
+                document.getElementById('loginOverlay').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'block';
+            } else {
+                document.getElementById('loginError').style.display = 'block';
+            }
+        });
+
+        function logout() {
+            sessionStorage.removeItem('isLoggedIn');
+            location.reload();
+        }
+
+        let inventory = JSON.parse(localStorage.getItem('inventoryDB')) || [];
+        let sales = JSON.parse(localStorage.getItem('salesDB')) || [];
+
+        function saveData() {
+            localStorage.setItem('inventoryDB', JSON.stringify(inventory));
+            localStorage.setItem('salesDB', JSON.stringify(sales));
+            renderData();
+        }
+
+        document.getElementById('addForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const name = document.getElementById('pName').value.trim();
+            const qty = Number(document.getElementById('pQty').value);
+            const buyPrice = Number(document.getElementById('pBuyPrice').value);
+            const sellPrice = Number(document.getElementById('pSellPrice').value);
+
+            const existingItem = inventory.find(i => i.name.toLowerCase() === name.toLowerCase());
+            
+            if (existingItem) {
+                existingItem.qty += qty;
+                existingItem.buyPrice = buyPrice;
+                existingItem.sellPrice = sellPrice;
+            } else {
+                inventory.push({ 
+                    id: Date.now().toString(), 
+                    name: name, 
+                    qty: qty, 
+                    buyPrice: buyPrice, 
+                    sellPrice: sellPrice 
+                });
+            }
+
+            document.getElementById('addForm').reset();
+            saveData();
+        });
+
+        document.getElementById('sellForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const itemId = document.getElementById('sellSelect').value;
+            const qtyToSell = Number(document.getElementById('sellQty').value);
+
+            if (!itemId) {
+                alert("Iltimos, tovarni tanlang!");
+                return;
+            }
+
+            const item = inventory.find(i => i.id === itemId);
+            
+            if (!item) {
+                alert("Xatolik: Tovar bazada topilmadi!");
+                return;
+            }
+
+            if (item.qty < qtyToSell) {
+                alert(`Xatolik: Omborda buncha tovar yo'q! Qoldiq: ${item.qty} ta`);
+                return;
+            }
+
+            item.qty -= qtyToSell;
+            
+            const totalRevenue = qtyToSell * item.sellPrice;
+            const totalProfit = qtyToSell * (item.sellPrice - item.buyPrice);
+
+            const now = new Date();
+            const timeString = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+            sales.push({
+                saleId: Date.now().toString(),
+                originalItemId: item.id,
+                name: item.name,
+                qty: qtyToSell,
+                revenue: totalRevenue,
+                profit: totalProfit,
+                buyPrice: item.buyPrice,
+                sellPrice: item.sellPrice,
+                time: timeString
+            });
+
+            document.getElementById('sellForm').reset();
+            document.getElementById('sellSearchBox').value = '';
+            saveData();
+        });
+
+        document.getElementById('sellSearchBox').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('sellQty').focus();
+            }
+        });
+
+        function returnItem(saleId) {
+            const saleIndex = sales.findIndex(s => s.saleId === saleId);
+            if (saleIndex === -1) return;
+            
+            const saleRecord = sales[saleIndex];
+
+            const returnQtyInput = prompt(`Diqqat! "${saleRecord.name}" dan nechta qaytarmoqchisiz?\n(Maksimal: ${saleRecord.qty} dona)`, saleRecord.qty);
+            
+            if (returnQtyInput === null) return; 
+
+            const returnQty = Number(returnQtyInput);
+
+            if (isNaN(returnQty) || returnQty <= 0 || returnQty > saleRecord.qty) {
+                alert("Noto'g'ri son kiritildi!");
+                return;
+            }
+
+            const inventoryItem = inventory.find(i => i.id === saleRecord.originalItemId);
+            
+            if (inventoryItem) {
+                inventoryItem.qty += returnQty;
+            } else {
+                inventory.push({
+                    id: saleRecord.originalItemId,
+                    name: saleRecord.name,
+                    qty: returnQty,
+                    buyPrice: saleRecord.buyPrice,
+                    sellPrice: saleRecord.sellPrice
+                });
+            }
+
+            const returnedRevenue = returnQty * saleRecord.sellPrice;
+            const returnedProfit = returnQty * (saleRecord.sellPrice - saleRecord.buyPrice);
+
+            saleRecord.qty -= returnQty;
+            saleRecord.revenue -= returnedRevenue;
+            saleRecord.profit -= returnedProfit;
+
+            if (saleRecord.qty === 0) {
+                sales.splice(saleIndex, 1);
+            }
+
+            saveData();
+        }
+
+        document.getElementById('searchBox').addEventListener('input', renderData);
+        document.getElementById('sellSearchBox').addEventListener('input', renderData);
+
+        function renderData() {
+            const invBody = document.getElementById('inventoryTable');
+            const sellSelect = document.getElementById('sellSelect');
+            
+            const invSearchText = document.getElementById('searchBox').value.toLowerCase().trim();
+            const sellSearchText = document.getElementById('sellSearchBox').value.toLowerCase().trim();
+
+            invBody.innerHTML = '';
+            sellSelect.innerHTML = '<option value="">-- Tovarni tanlang --</option>';
+
+            let totalStockCount = 0;
+            let totalInventoryCostVal = 0;
+            let totalPotentialRevenueVal = 0;
+            let totalPotentialProfitVal = 0;
+
+            let invMatchCount = 0;
+            let sellMatchCount = 0;
+            let firstMatchId = null;
+
+            inventory.forEach(item => {
+                totalStockCount += item.qty;
+                totalInventoryCostVal += item.qty * item.buyPrice;
+                totalPotentialRevenueVal += item.qty * item.sellPrice;
+                totalPotentialProfitVal += item.qty * (item.sellPrice - item.buyPrice);
+
+                if (item.name.toLowerCase().includes(invSearchText)) {
+                    invMatchCount++;
+                    const stockBadge = item.qty <= 5 
+                        ? `<span class="badge-low">Oz (${item.qty})</span>` 
+                        : `<span class="badge-ok">${item.qty} ta</span>`;
+                        
+                    invBody.innerHTML += `
+                        <tr>
+                            <td><strong>${item.name}</strong></td>
+                            <td>${stockBadge}</td>
+                            <td>${item.buyPrice.toLocaleString()}</td>
+                            <td>${item.sellPrice.toLocaleString()}</td>
+                        </tr>
+                    `;
+                }
+
+                if (item.qty > 0 && item.name.toLowerCase().includes(sellSearchText)) {
+                    sellMatchCount++;
+                    if (!firstMatchId) firstMatchId = item.id;
+                    
+                    sellSelect.innerHTML += `<option value="${item.id}">${item.name} (Qoldiq: ${item.qty} | ${item.sellPrice.toLocaleString()} so'm)</option>`;
+                }
+            });
+
+            if (invMatchCount === 0) {
+                invBody.innerHTML = "<tr><td colspan='4' class='no-data'>📦 Tovar topilmadi...</td></tr>";
+            }
+            
+            if (sellMatchCount === 0) {
+                sellSelect.innerHTML = '<option value="">Tovar topilmadi...</option>';
+            } else if (sellSearchText.length > 0 && firstMatchId) {
+                sellSelect.value = firstMatchId;
+            }
+
+            const salesBody = document.getElementById('salesTable');
+            salesBody.innerHTML = '';
+
+            let totalRev = 0;
+            let totalProf = 0;
+
+            const reversedSales = [...sales].reverse();
+
+            if (reversedSales.length === 0) {
+                salesBody.innerHTML = "<tr><td colspan='6' class='no-data'>Hozircha sotuvlar yo'q...</td></tr>";
+            }
+
+            reversedSales.forEach(s => {
+                totalRev += s.revenue;
+                totalProf += s.profit;
+                
+                salesBody.innerHTML += `
+                    <tr>
+                        <td style="font-size: 12px; color: #64748b;">${s.time || 'Nomaʼlum'}</td>
+                        <td><strong>${s.name}</strong></td>
+                        <td>${s.qty}</td>
+                        <td>${s.revenue.toLocaleString()}</td>
+                        <td style="color: #10b981; font-weight: bold;">+${s.profit.toLocaleString()}</td>
+                        <td>
+                            <button class="return-btn" onclick="returnItem('${s.saleId}')">🔄 Qaytarish</button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('totalStock').innerText = totalStockCount.toLocaleString() + " dona";
+            document.getElementById('totalCost').innerText = totalInventoryCostVal.toLocaleString() + " so'm";
+            document.getElementById('totalPotentialRevenue').innerText = totalPotentialRevenueVal.toLocaleString() + " so'm";
+            document.getElementById('totalPotentialProfit').innerText = totalPotentialProfitVal.toLocaleString() + " so'm";
+            document.getElementById('totalRevenue').innerText = totalRev.toLocaleString() + " so'm";
+            document.getElementById('totalProfit').innerText = totalProf.toLocaleString() + " so'm";
+        }
+
+        renderData();
+    </script>
+</body>
+</html>
